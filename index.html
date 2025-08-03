@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <title>Гіпертонія — Аналіз від нейромережі</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f0f0f0; }
+    .section { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    .btn { background: #3498db; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
+    .btn:hover { background: #2980b9; }
+    .hidden { display: none; }
+    .presentation { background: #eaf7fd; padding: 15px; border-radius: 8px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="section">
+    <h2>Виявлення потреби при гіпертонії</h2>
+
+    <label>Тип тиску:</label><br>
+    <select id="pressureStability" onchange="handlePressureType()">
+      <option value="">-- Оберіть --</option>
+      <option value="стабільний">Постійно підвищений</option>
+      <option value="нестабільний">Скаче</option>
+    </select><br><br>
+
+    <div id="unstableQuestions" class="hidden">
+      <label>Як часто скаче:</label><br>
+      <select id="jumpFrequency">
+        <option value="1-2 рази на тиждень">1-2 рази на тиждень</option>
+        <option value="щодня">Щодня</option>
+        <option value="раз на місяць">Раз на місяць</option>
+      </select><br><br>
+    </div>
+
+    <label>До яких значень підвищується тиск:</label><br>
+    <input type="number" id="systolicInput" placeholder="Верхній (наприклад, 160)"> /
+    <input type="number" id="diastolicInput" placeholder="Нижній (наприклад, 100)"><br><br>
+
+    <button class="btn" onclick="analyzeHypertension()">Проаналізувати</button>
+
+    <div id="aiResult" class="presentation hidden">
+      <h3><i class="fas fa-robot"></i> Висновок нейромережі:</h3>
+      <p id="aiExplanation">Зачекайте...</p>
+    </div>
+  </div>
+
+  <script>
+    function handlePressureType() {
+      const pressureType = document.getElementById('pressureStability').value;
+      document.getElementById('unstableQuestions').classList.toggle('hidden', pressureType !== 'нестабільний');
+    }
+
+    async function analyzeHypertension() {
+      const pressureType = document.getElementById('pressureStability').value || "не вказано";
+      const frequency = document.getElementById('jumpFrequency')?.value || "не вказано";
+      const systolic = document.getElementById('systolicInput').value || "не вказано";
+      const diastolic = document.getElementById('diastolicInput').value || "не вказано";
+
+      const prompt = `
+Пацієнт повідомив наступне:
+- Тип тиску: ${pressureType}
+- Частота стрибків: ${frequency}
+- Верхній тиск: ${systolic}
+- Нижній тиск: ${diastolic}
+
+Проаналізуй як досвідчений лікар-кардіолог.
+Поясни, що це може свідчити про стан серцево-судинної системи, які ускладнення можуть уже розвиватись і що станеться, якщо не почати лікування. Використай переконливу, зрозумілу пацієнту мову.
+`;
+
+      const resultBlock = document.getElementById('aiResult');
+      const explanation = document.getElementById('aiExplanation');
+      resultBlock.classList.remove('hidden');
+      explanation.textContent = 'Генеруємо відповідь...';
+
+      try {
+        const response = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": "Bearer sk-proj-YOUR_API_KEY_HERE",
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model: "gpt-4",
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0.7
+          })
+        });
+
+        const data = await response.json();
+        explanation.textContent = data.choices[0].message.content;
+      } catch (error) {
+        explanation.textContent = "Помилка при зверненні до API.";
+        console.error(error);
+      }
+    }
+  </script>
+</body>
+</html>
